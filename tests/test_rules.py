@@ -1,4 +1,5 @@
 import unittest
+from pathlib import Path
 
 from stickyagents.model import SEVERITIES, Event, Record, RunMeta
 from stickyagents.rules import NO_PROMPT_MODES, RULES, evaluate
@@ -66,6 +67,15 @@ CASES = {
 class TableTest(unittest.TestCase):
     def test_every_rule_has_a_case(self):
         self.assertEqual(sorted(CASES), sorted(rule.id for rule in RULES))
+
+    def test_docs_table_matches_rules(self):
+        doc = (Path(__file__).parent.parent / "docs" / "rules.md").read_text(encoding="utf-8")
+        rows = [
+            tuple(part.strip() for part in line.strip("|").split("|"))
+            for line in doc.splitlines()
+            if line.startswith("| ") and not line.startswith("| Id |") and not line.startswith("|---")
+        ]
+        self.assertEqual(rows, [(r.id, r.severity, r.title, r.advice) for r in RULES])
 
     def test_rules_are_well_formed(self):
         self.assertEqual(len({rule.id for rule in RULES}), len(RULES))
@@ -136,6 +146,11 @@ class RuleTest(unittest.TestCase):
             "~/.gemini/hooks.json",
             "~/.claude/hooks/pre-tool.sh",
             "~/.codex/hooks/a/b.py",
+            "~/.claude/CLAUDE.md",
+            "~/.pi/agent/AGENTS.md",
+            "~/.claude/skills/x/SKILL.md",
+            "~/.claude/agents/x.md",
+            "~/.claude/commands/x.md",
         ):
             with self.subTest(target):
                 self.assertEqual(ids(evaluate(record(touch(target, "agent-state", "write")), [])), ["W004"])
@@ -143,6 +158,7 @@ class RuleTest(unittest.TestCase):
             touch("~/.claude/settings.json", "agent-state", "read"),  # a read
             mention("~/.claude/settings.json", "agent-state"),  # shell text
             touch("~/project/settings.json", "repo", "write"),  # not the harness's
+            touch("~/project/CLAUDE.md", "repo", "write"),  # in the repo, not agent-state
             touch("~/.claude/notes.md", "agent-state", "write"),
             touch("~/.claude/hooks", "agent-state", "write"),  # a file called hooks, not a folder
             touch("~/.claude/settings.json.bak", "agent-state", "write"),

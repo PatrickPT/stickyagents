@@ -21,7 +21,7 @@ shell text). Then by `kind`:
 
 | kind | fields | meaning |
 |---|---|---|
-| `call` | `call_kind` (`read`, `write`, `shell`, `fetch`, `search`, `other`), `unsandboxed`, `refused` | one per tool call |
+| `call` | `call_kind` (`read`, `write`, `shell`, `fetch`, `search`, `other`), `unsandboxed`, `refused` | one per tool call; a refused call did not run and gives no other events |
 | `touch` | `mode` (`read`, `write`, `mention`), `zone`, `target` | a path; exact for file tools, a mention for shell text, which keeps four path segments (`~` counts as one) |
 | `net` | `target` | a host, or a channel such as `git remote` or `web search` |
 | `cmd` | `target` | a command name seen in shell text |

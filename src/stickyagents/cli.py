@@ -14,9 +14,10 @@ NOTES = {"no_session": "without a readable session", "unreadable": "could not be
 
 
 def _stamp(source: Path) -> list[int]:
-    """A source's mtime and size, and its write-ahead log's; a read-only open touches only `-shm`, so not that."""
+    """A source's mtime and size, and its non-empty write-ahead log's; a read-only open only creates an empty log."""
     own, wal = source.stat(), source.with_name(source.name + "-wal")
-    return [own.st_mtime_ns, own.st_size, *([wal.stat().st_mtime_ns, wal.stat().st_size] if wal.exists() else [])]
+    wstat = wal.stat() if wal.exists() else None
+    return [own.st_mtime_ns, own.st_size, *([wstat.st_mtime_ns, wstat.st_size] if wstat and wstat.st_size else [])]
 
 
 def scan(home: Path) -> dict[str, int]:
@@ -40,8 +41,7 @@ def scan(home: Path) -> dict[str, int]:
                 for run in runs:
                     run.meta.siblings = zones.find_siblings(run.meta.start)
                     store.save(normalise.normalise(run, str(home)))
-                after = _stamp(source)  # reading a database can create its log; that is no change of the source
-                seen[key] = after if after[:2] == stamp[:2] else stamp
+                seen[key] = stamp
             except Exception:  # noqa: BLE001 - one bad source must not stop the scan; it is counted and reported
                 counts["unreadable"] += 1
                 continue
@@ -64,12 +64,13 @@ def history(record: Record, records: list[Record]) -> list[Record]:
 
 
 def pick(records: list[Record], session: str | None, folder: str) -> Record | None:
-    """The run asked for: by session id, else the newest that started in or above this folder."""
+    """The run asked for: by session id, else the newest in the closest start folder at or above this folder."""
     if session:
         matches = [r for r in records if r.meta.session.startswith(session)]
     else:
         under = (r for r in records if r.meta.start)
         matches = [r for r in under if folder == r.meta.start or folder.startswith(r.meta.start.rstrip("/") + "/")]
+        matches.sort(key=lambda r: len(r.meta.start.rstrip("/")))
     return matches[-1] if matches else None
 
 
