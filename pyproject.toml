@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "stickyagents"
+version = "0.1.0"
+description = "See what your coding agents got their fingers on: a report of what each run touched, built from the session records your harness already keeps."
+readme = "README.md"
+requires-python = ">=3.10"
+license = "Apache-2.0"
+dependencies = []
+keywords = ["ai-agents", "coding-agents", "security", "audit"]
+
+[project.urls]
+Repository = "https://github.com/PatrickPT/stickyagents"
+
+[project.scripts]
+stickyagents = "stickyagents.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "S"]
+ignore = ["S101"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S"]

@@ -1,0 +1,26 @@
+# PR checks. No secrets. Each step runs one target of the Makefile, which holds the commands.
+name: check
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      matrix:
+        python: ["3.10", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Lint (ruff, pinned)
+        run: |
+          pip install --quiet ruff==0.17.2
+          make lint RUFF=ruff
+      - name: Tests (standard library only)
+        run: make test

@@ -1,0 +1,4 @@
+{"type": "session", "id": "wrong-types", "timestamp": 1770109200000, "cwd": 7}
+{"type": "message", "timestamp": [5], "message": {"role": "assistant", "content": [{"type": "toolCall", "name": 3, "arguments": {"path": "/a"}}, {"type": "toolCall", "name": "read", "arguments": "path=/a"}, {"type": "toolCall", "name": "read", "arguments": {"path": ["/a"]}}, {"type": "toolCall", "name": "bash", "arguments": {"command": 5}}, "text", null]}}
+{"type": "message", "message": {"role": "assistant", "content": "just text"}}
+{"type": "message", "message": "x"}

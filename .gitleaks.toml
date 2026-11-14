@@ -1,0 +1,24 @@
+# The secret scan's rules. CI runs gitleaks with them on every PR and push to the default branch
+# (.github/workflows/secrets.yml). Inline `gitleaks:allow` comments and `.gitleaksignore` files don't count. Keep
+# `useDefault = true` below. A known false positive: an entry like this at the end, through a PR (more: gitleaks'
+# README, "Configuration"):
+#   [[allowlists]]
+#   description = "<why it's no secret>"
+#   paths = ['''^tests/fixtures/example\.json$''']   # or regexes = [...], stopwords = [...]
+# Secret scan rules (gitleaks): gitleaks' defaults plus the Claude Code token from
+# `claude setup-token`, and GitHub App installation tokens in their stateless format, which the defaults don't cover
+# (checked with gitleaks 8.30.1). The other GitHub tokens are in the defaults (github-pat and others).
+[extend]
+useDefault = true
+
+[[rules]]
+id = "anthropic-claude-code-oauth-token"
+description = "Claude Code OAuth token (claude setup-token)"
+regex = '''sk-ant-oat\d{2}-[\w-]{20,}'''
+keywords = ["sk-ant-oat"]
+
+[[rules]]
+id = "github-app-installation-token-stateless"
+description = "GitHub App installation token, stateless format since 2026: ghs_<app id>_<JWT>"
+regex = '''ghs_[0-9]+_[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+'''
+keywords = ["ghs_"]

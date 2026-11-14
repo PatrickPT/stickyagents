@@ -1,0 +1,46 @@
+name: Harness reader
+description: Ask for, or offer, a reader for another coding-agent harness.
+labels: [harness]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        See docs/harnesses.md for what a reader is and which harnesses are read today.
+        Please do not paste real session records. Describe the format, or give a synthetic sample.
+  - type: input
+    id: harness
+    attributes:
+      label: The harness and its version
+    validations:
+      required: true
+  - type: textarea
+    id: location
+    attributes:
+      label: Where it keeps session records
+      description: The folder or database, on Linux and macOS, and the file format if you know it.
+    validations:
+      required: true
+  - type: input
+    id: documented
+    attributes:
+      label: Is the format documented? Link
+      placeholder: https://
+  - type: dropdown
+    id: sample
+    attributes:
+      label: Can you provide a synthetic sample?
+      options:
+        - "Yes"
+        - "No"
+        - Not sure
+    validations:
+      required: true
+  - type: dropdown
+    id: offer
+    attributes:
+      label: Would you write the reader?
+      options:
+        - "Yes"
+        - "No, I am asking for it"
+    validations:
+      required: true

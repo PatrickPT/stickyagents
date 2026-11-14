@@ -1,0 +1,3 @@
+{"event":"build","ok":true,"seconds":12}
+{"event":"deploy","ok":false,"message":{"content":[{"type":"tool_use","id":"x","name":"Bash","input":{"command":"true"}}]}}
+plain text, not JSON

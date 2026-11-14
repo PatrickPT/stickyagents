@@ -1,0 +1,5 @@
+{"type":"user","message":"a string, not an object","timestamp":17,"cwd":["/home/dev/project"],"permissionMode":{"mode":"default"},"permissionDecision":"reject"}
+{"type":"assistant","message":{"content":{"type":"tool_use"}},"timestamp":null,"cwd":null}
+{"type":"assistant","message":{"content":["text",7,null,{"type":"tool_use","id":["a","list"],"name":42,"input":"not an object"},{"type":"tool_use","id":{"an":"object"},"name":"Read","input":{"file_path":9,"path":null}},{"type":"tool_use","name":"Bash","input":{"command":["ls"],"dangerouslyDisableSandbox":"yes"}},{"type":"tool_use","id":"toolu_w1","name":"WebFetch","input":{"url":false}}]},"timestamp":"2026-01-07T08:00:00.000Z","cwd":"/home/dev/project"}
+{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":["a","list"],"is_error":true,"content":7},{"type":"tool_result","tool_use_id":"toolu_w1","is_error":"true","content":[null,{"type":"text","text":9}]},{"type":"tool_result"}]},"permissionDecision":["reject"]}
+{"type":["user"],"message":null}
