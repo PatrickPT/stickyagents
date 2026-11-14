@@ -22,7 +22,10 @@ STARTUP_FILES = (
 STARTUP_DIRS = ("~/.config/systemd", "~/.config/autostart", "/etc/systemd", "/etc/profile.d")
 STARTUP_PREFIXES = ("/etc/cron",)  # /etc/crontab, /etc/cron.d, /etc/cron.daily, ...
 
-SETTINGS_FILES = "settings.json settings.local.json config.json config.toml config.yaml hooks.json".split()
+SETTINGS_FILES = (
+    "settings.json settings.local.json config.json config.toml config.yaml hooks.json CLAUDE.md AGENTS.md".split()
+)
+SETTINGS_DIRS = {"hooks", "skills", "agents", "commands"}
 
 Match = Callable[[Record, list[Record]], list[str]]
 
@@ -43,9 +46,9 @@ def _startup(event: Event) -> bool:
 
 
 def _harness_settings(event: Event) -> bool:
-    """A file of the harness's own settings, which change what later runs may do, or one under a hooks folder."""
+    """A file of the harness's own settings, which change what later runs may do, or under a hooks/skills folder."""
     parts = (event.target or "").split("/")
-    return parts[-1] in SETTINGS_FILES or "hooks" in parts[:-1]
+    return parts[-1] in SETTINGS_FILES or not SETTINGS_DIRS.isdisjoint(parts[:-1])
 
 
 def _touch(test: Callable[[Event], bool]) -> Match:

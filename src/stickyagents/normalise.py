@@ -41,12 +41,12 @@ def _events(call: ToolCall, run: Run, home: str) -> list[Event]:
     tool = call.tool if _SAFE.fullmatch(call.tool) else "other"
     common = {"tool": tool, "time": _utc(call.time), "sub": call.sub}
     events = [Event("call", **common, call_kind=call.kind, unsandboxed=call.unsandboxed, refused=call.refused)]
+    if call.refused:
+        return events
 
     def touches(paths: tuple[str, ...], mode: str, exact: bool) -> list[Event]:
         places = filter(None, (classify(path, run.meta, home) for path in paths))
-        return [
-            Event("touch", **common, exact=exact, mode=mode, zone=zone, target=_cut(s, exact)) for zone, s in places
-        ]
+        return [Event("touch", **common, exact=exact, mode=mode, zone=z, target=_cut(s, exact)) for z, s in places]
 
     if call.kind in ("read", "write"):
         events += touches(call.paths, call.kind, True)

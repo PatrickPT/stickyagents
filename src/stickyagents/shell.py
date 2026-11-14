@@ -68,10 +68,11 @@ _PATTERN_COMMANDS = "sed awk gawk grep egrep fgrep rg ag perl jq yq tr".split() 
 _FORCE = re.compile(r"--force(-with-lease(=.*)?|-if-includes)?|-[A-Za-z]*f[A-Za-z]*")
 _MAIN = re.compile(r"(^|:)\+?(refs/heads/)?(main|master)$")
 _CODE_OPTION = re.compile(r"-[A-Za-z]*[cm]")  # -c 'code', -lc, -m module
+_SUB = re.compile(r"\$\(([^()]+)\)|`([^`]+)`")
 
 
 class _Word(str):
-    """A word without its quotes. `kind`: "" bare, "q" one pair of quotes and nothing else, "m" mixed or escaped."""
+    """A word without its quotes. `kind`: "" bare, "q"/"d" single/double quoted, "m"/"M" mixed or escaped."""
 
     def __new__(cls, text: str, kind: str = ""):
         word = super().__new__(cls, text)
@@ -125,9 +126,10 @@ def _segments(text: str) -> list[tuple[str, list[_Word]]]:
             else:
                 word = (word or "") + ch
         elif ch in "\"'":
-            quote, word, kind = ch, word or "", "q" if word is None else "m"
+            q = "d" if ch == '"' else "q"
+            quote, word, kind = ch, word or "", q if word is None else ("M" if "d" in kind + q else "m")
         elif ch == "\\" and i < len(text):
-            word, i, kind = (word if text[i] == "\n" else (word or "") + text[i]), i + 1, "m"  # \newline joins lines
+            word, i, kind = (word if text[i] == "\n" else (word or "") + text[i]), i + 1, "M" if "d" in kind else "m"
         elif ch == "#" and word is None:
             i = (text + "\n").index("\n", i)
         elif text.startswith("((", i - 1):
@@ -154,7 +156,7 @@ def _segments(text: str) -> list[tuple[str, list[_Word]]]:
                 before = lead + op
             words = []
         else:
-            word, kind = (word or "") + ch, "m" if kind == "q" else kind
+            word, kind = (word or "") + ch, ("M" if "d" in kind else "m") if kind in ("q", "d") else kind
     if word is not None:
         words.append(_Word(word, kind))
     return segments + [(before, words)] if words else segments
@@ -200,7 +202,9 @@ def _paths(name: str | None, words: list[_Word]) -> list[str]:
     """The paths a segment names: whole words only, never an option value, a text argument or a pattern."""
     found, skip, target = [], False, False  # skip: the last word was an option with a text value
     for word in words:
-        ok = word.kind == "" or (word.kind == "q" and name not in _PATTERN_COMMANDS and not any(map(str.isspace, word)))
+        ok = word.kind == "" or (
+            word.kind in ("q", "d") and name not in _PATTERN_COMMANDS and not any(map(str.isspace, word))
+        )
         pieces = _REDIRECT.split(word) if not word.kind else [word]
         for n, piece in enumerate(pieces):
             text = skip or (name in _TEXT_COMMANDS and not (n or target))
@@ -214,7 +218,8 @@ def _paths(name: str | None, words: list[_Word]) -> list[str]:
                 path = path.rstrip("/")
                 if path == "~" or re.search(r"[A-Za-z0-9]", path):
                     found.append(path)
-        skip, target = word in _TEXT_OPTIONS, len(pieces) > 1 and pieces[-1] == ""
+        is_test = name == "test" or "[" in words or "[[" in words
+        skip, target = word in _TEXT_OPTIONS and not (word == "-e" and is_test), len(pieces) > 1 and pieces[-1] == ""
     return found
 
 
@@ -224,6 +229,7 @@ def _walk(text: str, outer: str | None, depth: int, out: dict[str, list[str]]) -
     for before, words in _segments(text):
         name, args, sudo = _command(words)
         found, nets = ["sudo"] * (sudo or name == "su"), []
+        subs = [m[0] or m[1] for w in words if w.kind in ("d", "M") for m in _SUB.findall(w)]
         piped = piped and before in ("|", "|&")
         out["paths"] += [p for p in dict.fromkeys(_paths(name, words)) if p not in out["paths"]]
         if name:
@@ -244,11 +250,12 @@ def _walk(text: str, outer: str | None, depth: int, out: dict[str, list[str]]) -
                 nets += [url_host(url) for arg in args for url in _HTTP.findall(arg)]
             if (name == "ssh" and pos) or (name in ("scp", "rsync") and any(":" in a for a in pos)):
                 nets.append("ssh")
-            nets += [channel for names, subs, channel in _CHANNELS if name in names.split() and _has(pos, subs)]
+            nets += [channel for names, subs_, channel in _CHANNELS if name in names.split() and _has(pos, subs_)]
             code = [j for j, arg in enumerate(args[:-1]) if re.fullmatch(r"-[a-z]*c", arg)]
-            inner = args[code[0] + 1] if name in _SHELLS and code else " ".join(args) if name == "eval" else ""
-            if inner and depth < 3:
-                _walk(inner, name, depth + 1, out)
+            subs = [args[code[0] + 1]] if name in _SHELLS and code else [" ".join(args)] if name == "eval" else subs
+        for sub in subs:
+            if sub and depth < 3:
+                _walk(sub, name, depth + 1, out)
         previous = name
         out["hosts"] += [net for net in dict.fromkeys(nets) if net and net not in out["hosts"]]
         out["flags"] += [flag for flag in dict.fromkeys(found) if flag not in out["flags"]]

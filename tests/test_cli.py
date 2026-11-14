@@ -178,6 +178,8 @@ class ScanTest(unittest.TestCase):
         self.assertIsInstance(first, list)
         (self.home / "x.db-shm").write_text("shm")
         self.assertEqual(cli._stamp(source), first)
+        (self.home / "x.db-wal").write_text("")  # an empty log, as from a read-only open, does not count
+        self.assertEqual(cli._stamp(source), first)
         (self.home / "x.db-wal").write_text("wal")
         self.assertNotEqual(cli._stamp(source), first)
         self.assertEqual(json.loads(json.dumps(cli._stamp(source))), cli._stamp(source))
@@ -192,6 +194,14 @@ class EmptyStartTest(unittest.TestCase):
         self.assertIsNone(cli.pick([self.record("")], None, "~/project"))
         found = self.record("~/project")
         self.assertIs(cli.pick([self.record(""), found, self.record("")], None, "~/project/src"), found)
+
+    def test_pick_prefers_the_closest_start_folder_over_a_newer_ancestor(self):
+        older_repo = self.record("~/Code/project", "2026-01-01T00:00:00.000Z")
+        newer_repo = self.record("~/Code/project", "2026-01-02T00:00:00.000Z")
+        newest_home = self.record("~", "2026-01-03T00:00:00.000Z")
+        records = [older_repo, newer_repo, newest_home]
+        self.assertIs(cli.pick(records, None, "~/Code/project/src"), newer_repo)
+        self.assertIs(cli.pick(records, None, "~"), newest_home)
 
     def test_a_record_without_a_start_is_the_same_repo_as_nothing(self):
         empty, other = self.record(""), self.record("~/project", siblings=("",))

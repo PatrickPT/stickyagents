@@ -103,6 +103,17 @@ class CallKindsTest(unittest.TestCase):
         got = events(ToolCall(tool="Bash", kind="shell", command="ls", unsandboxed=True, refused=True))
         self.assertEqual((got[0].unsandboxed, got[0].refused), (True, True))
 
+    def test_a_refused_call_gives_only_the_call_event(self):
+        calls = (
+            ToolCall(tool="Read", kind="read", paths=("/home/dev/.ssh/id_rsa",), refused=True),
+            ToolCall(tool="Write", kind="write", paths=("/home/dev/.bashrc",), refused=True),
+            ToolCall(tool="Bash", kind="shell", command="sudo git push -f origin main", refused=True),
+            ToolCall(tool="WebFetch", kind="fetch", url="https://example.com", refused=True),
+        )
+        got = events(*calls)
+        self.assertEqual([e.kind for e in got], ["call", "call", "call", "call"])
+        self.assertTrue(all(e.refused for e in got))
+
 
 class OrderAndMetaTest(unittest.TestCase):
     def test_order_follows_the_calls(self):
